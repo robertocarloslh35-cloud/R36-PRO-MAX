@@ -1,0 +1,45 @@
+name: Gerar APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "*.zip"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar projeto
+        uses: actions/checkout@v4
+
+      - name: Extrair ZIP
+        run: |
+          mkdir projeto
+          unzip -o *.zip -d projeto
+
+      - name: Encontrar projeto Android
+        run: |
+          GRADLEW=$(find projeto -type f -name gradlew | head -n 1)
+          if [ -z "$GRADLEW" ]; then
+            echo "Não encontrei o arquivo gradlew dentro do ZIP."
+            exit 1
+          fi
+          echo "GRADLEW=$GRADLEW" >> $GITHUB_ENV
+          echo "PROJETO=$(dirname "$GRADLEW")" >> $GITHUB_ENV
+
+      - name: Dar permissão ao Gradle
+        run: chmod +x "$GRADLEW"
+
+      - name: Gerar APK
+        run: |
+          cd "$PROJETO"
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Enviar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: APK-R36-PRO-MAX
+          path: |
+            projeto/**/build/outputs/apk/**/*.apk
